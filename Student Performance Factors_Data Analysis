@@ -1,0 +1,97 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler,PolynomialFeatures
+from sklearn.linear_model import LinearRegression
+import os
+
+# https://www.kaggle.com/datasets/lainguyn123/student-performance-factors
+
+file_path = 'StudentPerformanceFactors.csv'
+df = pd.read_csv(file_path)
+print(df.head())
+
+df.dtypes
+
+df.describe()
+
+# 코드 작성
+missing_data = df.isnull().sum()
+print(missing_data)
+
+value_counts = df["Attendance"].value_counts()
+value_counts
+
+df.boxplot(column = "Exam_Score", by ="Gender",grid=True)
+
+sns.regplot(x="Family_Income", y="Exam_Score", data=df)
+
+numeric_df = df.select_dtypes(include=[np.number])
+numeric_df.corr()['Exam_Score'].sort_values()
+
+X = df[['Attendance']]
+Y = df[['Exam_Score']]
+lm = LinearRegression()
+lm.fit(X,Y)
+lm.score(X,Y)
+
+features = ['Attendance', 'Hours_Studied', "Tutoring_Sessions", "Physical_Activity"]
+
+X = df[features]
+Y = df['Exam_Score']
+lm2 = LinearRegression()
+
+lm2.fit(X,Y)
+lm2.score(X,Y)
+
+Input=[('scale',StandardScaler()),('polynomial', PolynomialFeatures(include_bias=False)),('model',LinearRegression())]
+Pipe = Pipeline(Input)
+pipe.fit(X,Y)
+pipe.score(X, Y)
+
+from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import r2_score
+from sklearn.linear_model import Ridge
+print("done")
+
+features = ['Attendance', 'Hours_Studied']
+X = df[features]
+Y = df['Exam_Score']
+
+x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=0.15, random_state=1)
+
+
+print("number of test samples:", x_test.shape[0])
+print("number of training samples:",x_train.shape[0])
+
+# Ridge 회귀 모델 정의 및 학습
+RidgeModel = Ridge(alpha=0.1) # L2 정규화 강도 설정
+RidgeModel.fit(x_train, y_train) # 학습 데이터로 모델 학습
+
+# 예측 및 R² 값 계산
+yhat = RidgeModel.predict(x_test)
+r2 = r2_score(y_test, yhat)
+
+# 결과 출력
+print("R^2:", r2)
+
+# 다항 변환 (2차)
+poly = PolynomialFeatures(degree=2, include_bias=False)
+
+# 훈련 데이터와 테스트 데이터 변환
+x_train_poly = poly.fit_transform(x_train)
+x_test_poly = poly.transform(x_test)
+
+# Ridge 회귀 모델 생성 및 학습
+ridge = Ridge(alpha=0.1)  # 정규화 강도 설정
+ridge.fit(x_train_poly, y_train)
+
+# 모델 평가
+y_pred = ridge.predict(x_test_poly)
+r2 = r2_score(y_test, y_pred)
+
+# 결과 출력
+print("R^2 score on test data:", r2)
